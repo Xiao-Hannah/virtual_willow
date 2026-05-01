@@ -1,6 +1,9 @@
 :root {
-  --cat-width: 220px;
-  --cat-height: 220px;
+  /* Sprites are exported on a uniform 401x301 transparent canvas
+     (see assets/split_sprites.py). Keep this ratio so every pose
+     occupies the same on-screen footprint. */
+  --cat-width: 260px;
+  --cat-height: 195px;
 }
 
 * {
@@ -31,21 +34,36 @@ body {
   box-sizing: content-box;
   width: var(--cat-width);
   height: var(--cat-height);
-  cursor: grab;
-  background-image: url("assets/cat-sprites.png");
+  /* The .cat element is just the visual frame; clicks pass through its
+     transparent padding. Only the inner .cat__hitbox captures events. */
+  pointer-events: none;
   background-repeat: no-repeat;
-  background-size: 440px 660px;
+  background-position: center bottom;
+  background-size: contain;
   background-origin: content-box;
   border: 0;
   filter: drop-shadow(0 14px 16px rgba(24, 21, 18, 0.18));
   transform-origin: 50% 100%;
   transition: filter 220ms ease, transform 180ms ease;
-  touch-action: none;
   user-select: none;
   will-change: left, top, transform;
 }
 
-.cat:active {
+.cat__hitbox {
+  position: absolute;
+  /* Roughly hugs the visible sprite (sprites are bottom-aligned on a
+     401x301 canvas with ~70% horizontal coverage and ~85% vertical). */
+  left: 12%;
+  right: 12%;
+  bottom: 0;
+  height: 88%;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+  outline: none;
+}
+
+.cat__hitbox:active {
   cursor: grabbing;
 }
 
@@ -54,21 +72,21 @@ body {
 }
 
 .cat.idle {
-  background-position: 0px -220px;
+  background-image: url("assets/sprites/cat_03.png");
 }
 
 .cat.walking {
-  background-position: 0px 0px;
+  background-image: url("assets/sprites/cat_01.png");
 }
 
 .cat.sleeping {
-  background-position: -220px 0px;
+  background-image: url("assets/sprites/cat_02.png");
 }
 
 .cat.playing {
-  background-position: -220px -220px;
+  background-image: url("assets/sprites/cat_04.png");
 }
 
 .cat.stretching {
-  background-position: -220px -440px;
+  background-image: url("assets/sprites/cat_06.png");
 }

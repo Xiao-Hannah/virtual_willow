@@ -1,6 +1,10 @@
 const cat = document.querySelector("#cat");
+const hitbox = document.querySelector("#cat-hitbox");
 
-const BOTTOM_OFFSET = -15;
+// Positive = lift cat above the window's bottom edge; 0 = sit flush. The
+// Electron window itself is positioned just above the taskbar (see main.js),
+// so 0 already places the cat's feet on the taskbar's top edge.
+const BOTTOM_OFFSET = -10;
 const WALK_SPEED = 70;
 const STATE_DURATION = {
   idle: [1600, 3400],
@@ -137,7 +141,7 @@ function animationLoop(now) {
 function startDrag(event) {
   state.dragging = true;
   cat.classList.add("dragging");
-  cat.setPointerCapture(event.pointerId);
+  hitbox.setPointerCapture(event.pointerId);
 
   const rect = cat.getBoundingClientRect();
   state.dragOffsetX = event.clientX - rect.left;
@@ -163,8 +167,8 @@ function endDrag(event) {
   state.dragging = false;
   cat.classList.remove("dragging");
 
-  if (cat.hasPointerCapture(event.pointerId)) {
-    cat.releasePointerCapture(event.pointerId);
+  if (hitbox.hasPointerCapture(event.pointerId)) {
+    hitbox.releasePointerCapture(event.pointerId);
   }
 
   state.nextStateAt = performance.now() + randomDuration("idle");
@@ -186,10 +190,38 @@ function initializeCat() {
   requestAnimationFrame(animationLoop);
 }
 
-cat.addEventListener("pointerdown", startDrag);
-cat.addEventListener("pointermove", dragCat);
-cat.addEventListener("pointerup", endDrag);
-cat.addEventListener("pointercancel", endDrag);
+hitbox.addEventListener("pointerdown", startDrag);
+hitbox.addEventListener("pointermove", dragCat);
+hitbox.addEventListener("pointerup", endDrag);
+hitbox.addEventListener("pointercancel", endDrag);
 window.addEventListener("resize", keepInsideWindow);
+
+// In Electron, the BrowserWindow swallows OS-level mouse events even where
+// the page is transparent. main.js starts the window in click-through mode
+// with `forward: true`, which still delivers mouse-move events here. We
+// re-enable interactivity only while the cursor is actually over the cat,
+// so the rest of the desktop row stays usable.
+const bridge = window.petBridge;
+if (bridge) {
+  hitbox.addEventListener("pointerenter", () => bridge.setInteractive(true));
+  hitbox.addEventListener("pointerleave", () => {
+    if (!state.dragging) bridge.setInteractive(false);
+  });
+  // Safety net: after a drag ends outside the hitbox, drop interactivity.
+  hitbox.addEventListener("pointerup", () => {
+    requestAnimationFrame(() => {
+      const r = hitbox.getBoundingClientRect();
+      const { x, y } = lastPointer;
+      const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      if (!inside) bridge.setInteractive(false);
+    });
+  });
+}
+
+const lastPointer = { x: 0, y: 0 };
+window.addEventListener("pointermove", (e) => {
+  lastPointer.x = e.clientX;
+  lastPointer.y = e.clientY;
+}, { capture: true });
 
 initializeCat();
