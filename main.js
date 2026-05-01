@@ -2,16 +2,17 @@ const { app, BrowserWindow, screen, ipcMain } = require("electron");
 const path = require("path");
 
 function createWindow() {
-  // workArea excludes the taskbar/dock. We cover it entirely so the cat can
-  // be dragged anywhere on screen; the window itself is fully transparent
-  // and click-through except over the cat sprite.
-  const { workArea } = screen.getPrimaryDisplay();
+  // On macOS we use the full display bounds so the cat can roam over the
+  // Dock; on Windows/Linux we use workArea to keep the window from being
+  // hidden behind the taskbar.
+  const display = screen.getPrimaryDisplay();
+  const region = process.platform === "darwin" ? display.bounds : display.workArea;
 
   const win = new BrowserWindow({
-    x: workArea.x,
-    y: workArea.y,
-    width: workArea.width,
-    height: workArea.height,
+    x: region.x,
+    y: region.y,
+    width: region.width,
+    height: region.height,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -24,6 +25,14 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  // On macOS, raise the window above the Dock (the Dock sits at the
+  // "dock" level; "screen-saver" floats above it). The second argument
+  // ensures the window is also visible over fullscreen apps' menu bar area.
+  if (process.platform === "darwin") {
+    win.setAlwaysOnTop(true, "screen-saver");
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
 
   // Click-through everywhere by default; mouse-move events are still forwarded
   // to the renderer so it can detect when the cursor enters the cat hitbox

@@ -260,7 +260,7 @@ function buildMenu() {
     ? [{ label: "Wake up", action: wakeUp }]
     : [{ label: "Go to sleep", action: sleepNow }];
   items.push({
-    label: "Goodbye Willow\u{1F44B}",
+    label: "See you tomorrow Willow\u{1F44B}",
     action: () => {
       if (bridge && bridge.quit) bridge.quit();
     },

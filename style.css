@@ -2,8 +2,8 @@
   /* Sprites are exported on a uniform 401x301 transparent canvas
      (see assets/split_sprites.py). Keep this ratio so every pose
      occupies the same on-screen footprint. */
-  --cat-width: 130px;
-  --cat-height: 98px;
+  --cat-width: 173px;
+  --cat-height: 130px;
 }
 
 * {
