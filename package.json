@@ -1,0 +1,12 @@
+{
+  "name": "desktop-cat-pet",
+  "version": "1.0.0",
+  "description": "A transparent Electron desktop cat pet using a sprite sheet.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^30.0.0"
+  }
+}

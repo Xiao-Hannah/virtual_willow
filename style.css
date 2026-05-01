@@ -1,0 +1,74 @@
+:root {
+  --cat-width: 220px;
+  --cat-height: 220px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: transparent;
+}
+
+.desktop {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+.cat {
+  position: absolute;
+  z-index: 2;
+  box-sizing: content-box;
+  width: var(--cat-width);
+  height: var(--cat-height);
+  cursor: grab;
+  background-image: url("assets/cat-sprites.png");
+  background-repeat: no-repeat;
+  background-size: 440px 660px;
+  background-origin: content-box;
+  border: 0;
+  filter: drop-shadow(0 14px 16px rgba(24, 21, 18, 0.18));
+  transform-origin: 50% 100%;
+  transition: filter 220ms ease, transform 180ms ease;
+  touch-action: none;
+  user-select: none;
+  will-change: left, top, transform;
+}
+
+.cat:active {
+  cursor: grabbing;
+}
+
+.cat.dragging {
+  filter: drop-shadow(0 20px 20px rgba(24, 21, 18, 0.22));
+}
+
+.cat.idle {
+  background-position: 0px -220px;
+}
+
+.cat.walking {
+  background-position: 0px 0px;
+}
+
+.cat.sleeping {
+  background-position: -220px 0px;
+}
+
+.cat.playing {
+  background-position: -220px -220px;
+}
+
+.cat.stretching {
+  background-position: -220px -440px;
+}
