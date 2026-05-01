@@ -22,6 +22,7 @@ const state = {
   direction: 1,
   dragging: false,
   dragOffsetX: 0,
+  dragOffsetY: 0,
   nextStateAt: 0,
   lastFrame: performance.now(),
 };
@@ -47,7 +48,7 @@ function getBounds() {
 
   return {
     maxX: Math.max(0, window.innerWidth - catSize.width),
-    bottomY: Math.max(0, window.innerHeight - catSize.height - BOTTOM_OFFSET),
+    maxY: Math.max(0, window.innerHeight - catSize.height - BOTTOM_OFFSET),
   };
 }
 
@@ -60,10 +61,12 @@ function pickTargetX() {
   return randomBetween(16, Math.max(16, bounds.maxX - 16));
 }
 
-function pinCatToBottom() {
+// Keeps the cat inside the window without forcing it to the ground line, so
+// the user's chosen drop position is preserved across resizes and renders.
+function clampCatPosition() {
   const bounds = getBounds();
-  state.catY = bounds.bottomY;
   state.catX = clamp(state.catX, 0, bounds.maxX);
+  state.catY = clamp(state.catY, 0, bounds.maxY);
   state.targetX = clamp(state.targetX, 0, bounds.maxX);
 }
 
@@ -71,7 +74,7 @@ function setMode(mode) {
   state.mode = mode;
   state.nextStateAt = performance.now() + randomDuration(mode);
   cat.className = `cat ${mode}${state.dragging ? " dragging" : ""}`;
-  pinCatToBottom();
+  clampCatPosition();
 
   if (mode === "walking") {
     state.targetX = pickTargetX();
@@ -117,7 +120,7 @@ function moveHorizontally(deltaTime) {
 }
 
 function render() {
-  pinCatToBottom();
+  clampCatPosition();
   cat.style.left = `${state.catX}px`;
   cat.style.top = `${state.catY}px`;
   cat.style.transform = `scaleX(${state.direction})`;
@@ -137,7 +140,7 @@ function animationLoop(now) {
   requestAnimationFrame(animationLoop);
 }
 
-// Dragging is constrained to X; the Y position remains pinned to the bottom.
+// Dragging supports both axes so the cat can be placed anywhere in the window.
 function startDrag(event) {
   state.dragging = true;
   cat.classList.add("dragging");
@@ -145,6 +148,7 @@ function startDrag(event) {
 
   const rect = cat.getBoundingClientRect();
   state.dragOffsetX = event.clientX - rect.left;
+  state.dragOffsetY = event.clientY - rect.top;
   setMode("idle");
 }
 
@@ -155,8 +159,8 @@ function dragCat(event) {
 
   const bounds = getBounds();
   state.catX = clamp(event.clientX - state.dragOffsetX, 0, bounds.maxX);
+  state.catY = clamp(event.clientY - state.dragOffsetY, 0, bounds.maxY);
   state.targetX = state.catX;
-  pinCatToBottom();
 }
 
 function endDrag(event) {
@@ -175,7 +179,7 @@ function endDrag(event) {
 }
 
 function keepInsideWindow() {
-  pinCatToBottom();
+  clampCatPosition();
   render();
 }
 
@@ -183,8 +187,9 @@ function initializeCat() {
   const catSize = getCatSize();
   const bounds = getBounds();
   state.catX = clamp(window.innerWidth * 0.5 - catSize.width / 2, 0, bounds.maxX);
+  state.catY = bounds.maxY;
   state.targetX = state.catX;
-  pinCatToBottom();
+  clampCatPosition();
   setMode("idle");
   render();
   requestAnimationFrame(animationLoop);

@@ -1,18 +1,17 @@
 const { app, BrowserWindow, screen, ipcMain } = require("electron");
 const path = require("path");
 
-const WINDOW_HEIGHT = 320;
-
 function createWindow() {
-  // workArea excludes the taskbar/dock, so the window sits flush above it
-  // instead of being partially hidden behind it.
+  // workArea excludes the taskbar/dock. We cover it entirely so the cat can
+  // be dragged anywhere on screen; the window itself is fully transparent
+  // and click-through except over the cat sprite.
   const { workArea } = screen.getPrimaryDisplay();
 
   const win = new BrowserWindow({
     x: workArea.x,
-    y: workArea.y + workArea.height - WINDOW_HEIGHT,
+    y: workArea.y,
     width: workArea.width,
-    height: WINDOW_HEIGHT,
+    height: workArea.height,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
