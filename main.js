@@ -38,6 +38,10 @@ function createWindow() {
     }
   });
 
+  ipcMain.on("cat:quit", () => {
+    app.quit();
+  });
+
   win.loadFile("index.html");
 }
 

@@ -2,8 +2,8 @@
   /* Sprites are exported on a uniform 401x301 transparent canvas
      (see assets/split_sprites.py). Keep this ratio so every pose
      occupies the same on-screen footprint. */
-  --cat-width: 260px;
-  --cat-height: 195px;
+  --cat-width: 130px;
+  --cat-height: 98px;
 }
 
 * {
@@ -89,4 +89,35 @@ body {
 
 .cat.dragging {
   filter: drop-shadow(0 20px 20px rgba(24, 21, 18, 0.22));
+}
+
+.cat-menu {
+  position: fixed;
+  z-index: 10;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  min-width: 180px;
+  background: rgba(28, 26, 24, 0.96);
+  color: #f3efe7;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  pointer-events: auto;
+  user-select: none;
+  backdrop-filter: blur(6px);
+}
+
+.cat-menu[hidden] {
+  display: none;
+}
+
+.cat-menu li {
+  padding: 7px 14px;
+  cursor: default;
+}
+
+.cat-menu li:hover {
+  background: rgba(255, 255, 255, 0.08);
 }

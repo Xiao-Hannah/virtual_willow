@@ -1,10 +1,11 @@
 const cat = document.querySelector("#cat");
 const hitbox = document.querySelector("#cat-hitbox");
+const menu = document.querySelector("#cat-menu");
 
 // Positive = lift cat above the window's bottom edge; 0 = sit flush. The
 // Electron window itself is positioned just above the taskbar (see main.js),
 // so 0 already places the cat's feet on the taskbar's top edge.
-const BOTTOM_OFFSET = -10;
+const BOTTOM_OFFSET = -5;
 const WALK_SPEED = 70;
 const STATE_DURATION = {
   idle: [1600, 3400],
@@ -25,6 +26,9 @@ const state = {
   dragOffsetY: 0,
   nextStateAt: 0,
   lastFrame: performance.now(),
+  // When true, the cat stays in the sleeping pose and the random state
+  // machine is paused until the user wakes her via the context menu.
+  forcedSleep: false,
 };
 
 function randomBetween(min, max) {
@@ -102,7 +106,7 @@ function chooseNextMode() {
 
 // Move only along the X axis so the cat stays grounded on the desktop strip.
 function moveHorizontally(deltaTime) {
-  if (state.dragging || state.mode !== "walking") {
+  if (state.dragging || state.forcedSleep || state.mode !== "walking") {
     return;
   }
 
@@ -130,7 +134,7 @@ function animationLoop(now) {
   const deltaTime = now - state.lastFrame;
   state.lastFrame = now;
 
-  if (!state.dragging && now > state.nextStateAt) {
+  if (!state.dragging && !state.forcedSleep && now > state.nextStateAt) {
     chooseNextMode();
   }
 
@@ -141,6 +145,10 @@ function animationLoop(now) {
 
 // Dragging supports both axes so the cat can be placed anywhere in the window.
 function startDrag(event) {
+  // Only respond to the primary (left) mouse button so right-clicks open the menu.
+  if (event.button !== undefined && event.button !== 0) {
+    return;
+  }
   state.dragging = true;
   cat.classList.add("dragging");
   hitbox.setPointerCapture(event.pointerId);
@@ -148,7 +156,10 @@ function startDrag(event) {
   const rect = cat.getBoundingClientRect();
   state.dragOffsetX = event.clientX - rect.left;
   state.dragOffsetY = event.clientY - rect.top;
-  setMode("idle");
+  // Keep the sleeping pose during drag if the user has forced sleep on.
+  if (!state.forcedSleep) {
+    setMode("idle");
+  }
 }
 
 function dragCat(event) {
@@ -174,7 +185,9 @@ function endDrag(event) {
     hitbox.releasePointerCapture(event.pointerId);
   }
 
-  state.nextStateAt = performance.now() + randomDuration("idle");
+  if (!state.forcedSleep) {
+    state.nextStateAt = performance.now() + randomDuration("idle");
+  }
 }
 
 function keepInsideWindow() {
@@ -209,7 +222,7 @@ const bridge = window.petBridge;
 if (bridge) {
   hitbox.addEventListener("pointerenter", () => bridge.setInteractive(true));
   hitbox.addEventListener("pointerleave", () => {
-    if (!state.dragging) bridge.setInteractive(false);
+    if (!state.dragging && menu.hidden) bridge.setInteractive(false);
   });
   // Safety net: after a drag ends outside the hitbox, drop interactivity.
   hitbox.addEventListener("pointerup", () => {
@@ -217,7 +230,7 @@ if (bridge) {
       const r = hitbox.getBoundingClientRect();
       const { x, y } = lastPointer;
       const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-      if (!inside) bridge.setInteractive(false);
+      if (!inside && menu.hidden) bridge.setInteractive(false);
     });
   });
 }
@@ -227,5 +240,83 @@ window.addEventListener("pointermove", (e) => {
   lastPointer.x = e.clientX;
   lastPointer.y = e.clientY;
 }, { capture: true });
+
+// ---- Right-click context menu --------------------------------------------
+function sleepNow() {
+  state.forcedSleep = true;
+  setMode("sleeping");
+  // Bump nextStateAt far into the future so the random scheduler stays idle.
+  state.nextStateAt = Number.POSITIVE_INFINITY;
+}
+
+function wakeUp() {
+  state.forcedSleep = false;
+  setMode("idle");
+}
+
+function buildMenu() {
+  menu.innerHTML = "";
+  const items = state.forcedSleep
+    ? [{ label: "Wake up", action: wakeUp }]
+    : [{ label: "Go to sleep", action: sleepNow }];
+  items.push({
+    label: "Goodbye Willow\u{1F44B}",
+    action: () => {
+      if (bridge && bridge.quit) bridge.quit();
+    },
+  });
+  for (const item of items) {
+    const li = document.createElement("li");
+    li.textContent = item.label;
+    li.setAttribute("role", "menuitem");
+    li.addEventListener("click", () => {
+      item.action();
+      hideMenu();
+    });
+    menu.appendChild(li);
+  }
+}
+
+function showMenu(x, y) {
+  buildMenu();
+  menu.hidden = false;
+  // Keep the Electron window interactive while the menu is open so clicks
+  // outside the cat hitbox (but on the menu) still register.
+  if (bridge) bridge.setInteractive(true);
+  // Defer measurement until after the menu is in the layout tree.
+  const rect = menu.getBoundingClientRect();
+  const px = Math.min(x, window.innerWidth - rect.width - 4);
+  const py = Math.min(y, window.innerHeight - rect.height - 4);
+  menu.style.left = `${Math.max(4, px)}px`;
+  menu.style.top = `${Math.max(4, py)}px`;
+}
+
+function hideMenu() {
+  if (menu.hidden) return;
+  menu.hidden = true;
+  // Restore click-through unless the cursor is currently over the cat.
+  if (bridge) {
+    const r = hitbox.getBoundingClientRect();
+    const inside =
+      lastPointer.x >= r.left && lastPointer.x <= r.right &&
+      lastPointer.y >= r.top  && lastPointer.y <= r.bottom;
+    if (!inside && !state.dragging) bridge.setInteractive(false);
+  }
+}
+
+hitbox.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+  showMenu(event.clientX, event.clientY);
+});
+
+// Dismiss the menu on any outside click or Escape.
+document.addEventListener("pointerdown", (event) => {
+  if (!menu.hidden && !menu.contains(event.target)) {
+    hideMenu();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") hideMenu();
+});
 
 initializeCat();
