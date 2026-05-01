@@ -1,6 +1,17 @@
 const cat = document.querySelector("#cat");
 const hitbox = document.querySelector("#cat-hitbox");
 const menu = document.querySelector("#cat-menu");
+const walkingLayer = document.querySelector('.cat__layer--walking');
+
+// 12-frame walking cycle. Preloaded so src swaps don't flicker.
+const WALK_FRAMES = Array.from({ length: 12 }, (_, i) =>
+  `assets/sprites/walk/cat_walk_${String(i + 1).padStart(2, "0")}.png`
+);
+const WALK_FRAME_INTERVAL = 90; // ms between frames
+WALK_FRAMES.forEach((src) => {
+  const img = new Image();
+  img.src = src;
+});
 
 // Positive = lift cat above the window's bottom edge; 0 = sit flush. The
 // Electron window itself is positioned just above the taskbar (see main.js),
@@ -29,6 +40,8 @@ const state = {
   // When true, the cat stays in the sleeping pose and the random state
   // machine is paused until the user wakes her via the context menu.
   forcedSleep: false,
+  walkFrameIdx: 0,
+  nextWalkFrameAt: 0,
 };
 
 function randomBetween(min, max) {
@@ -81,6 +94,10 @@ function setMode(mode) {
   clampCatPosition();
   if (mode === "walking") {
     state.targetX = pickTargetX();
+    // Reset the walk cycle so each walk starts on frame 1.
+    state.walkFrameIdx = 0;
+    walkingLayer.src = WALK_FRAMES[0];
+    state.nextWalkFrameAt = performance.now() + WALK_FRAME_INTERVAL;
   }
 
   if (mode === "idle" || mode === "sleeping" || mode === "stretching" || mode === "playing") {
@@ -129,6 +146,15 @@ function render() {
   cat.style.transform = `scaleX(${state.direction})`;
 }
 
+// Advance the walking spritesheet one frame at WALK_FRAME_INTERVAL ms.
+function tickWalkAnimation(now) {
+  if (state.mode !== "walking" || state.dragging) return;
+  if (now < state.nextWalkFrameAt) return;
+  state.walkFrameIdx = (state.walkFrameIdx + 1) % WALK_FRAMES.length;
+  walkingLayer.src = WALK_FRAMES[state.walkFrameIdx];
+  state.nextWalkFrameAt = now + WALK_FRAME_INTERVAL;
+}
+
 // The main loop handles timed state changes, horizontal walking, and rendering.
 function animationLoop(now) {
   const deltaTime = now - state.lastFrame;
@@ -139,6 +165,7 @@ function animationLoop(now) {
   }
 
   moveHorizontally(deltaTime);
+  tickWalkAnimation(now);
   render();
   requestAnimationFrame(animationLoop);
 }
