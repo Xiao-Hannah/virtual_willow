@@ -51,6 +51,16 @@ function createWindow() {
     app.quit();
   });
 
+  // Expose how much vertical space at the bottom of our window is occupied by
+  // OS chrome (the macOS Dock when it's at the bottom). Renderer uses this to
+  // pick a default cat Y that sits above the Dock, even though the window
+  // itself extends behind it so the cat can be dragged there.
+  ipcMain.handle("cat:get-bottom-inset", () => {
+    const workAreaBottom = display.workArea.y + display.workArea.height;
+    const boundsBottom = display.bounds.y + display.bounds.height;
+    return Math.max(0, boundsBottom - workAreaBottom);
+  });
+
   win.loadFile("index.html");
 }
 

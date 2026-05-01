@@ -231,6 +231,19 @@ function initializeCat() {
   clampCatPosition();
   setMode("idle");
   render();
+  // On macOS the window extends behind the Dock so the cat *can* be dragged
+  // there, but by default we want the cat sitting above it (matching the
+  // visual ground line on Windows/Linux where workArea already excludes the
+  // taskbar). Lift the cat by the OS bottom inset once we know it.
+  if (window.petBridge?.getBottomInset) {
+    window.petBridge.getBottomInset().then((inset) => {
+      if (inset > 0) {
+        const b = getBounds();
+        state.catY = Math.max(0, b.maxY - inset);
+        render();
+      }
+    });
+  }
   requestAnimationFrame(animationLoop);
 }
 
