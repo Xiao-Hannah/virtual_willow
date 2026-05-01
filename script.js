@@ -75,7 +75,6 @@ function setMode(mode) {
   state.nextStateAt = performance.now() + randomDuration(mode);
   cat.className = `cat ${mode}${state.dragging ? " dragging" : ""}`;
   clampCatPosition();
-
   if (mode === "walking") {
     state.targetX = pickTargetX();
   }

@@ -37,16 +37,35 @@ body {
   /* The .cat element is just the visual frame; clicks pass through its
      transparent padding. Only the inner .cat__hitbox captures events. */
   pointer-events: none;
-  background-repeat: no-repeat;
-  background-position: center bottom;
-  background-size: contain;
-  background-origin: content-box;
   border: 0;
   filter: drop-shadow(0 14px 16px rgba(24, 21, 18, 0.18));
   transform-origin: 50% 100%;
   transition: filter 220ms ease, transform 180ms ease;
   user-select: none;
   will-change: left, top, transform;
+}
+
+/* Each pose is a stacked <img>, bottom-aligned and centered, so a CSS
+   opacity transition produces a smooth crossfade between them. */
+.cat__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 0;
+  transition: opacity 260ms ease-in-out;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.cat.idle       .cat__layer[data-pose="idle"],
+.cat.walking    .cat__layer[data-pose="walking"],
+.cat.sleeping   .cat__layer[data-pose="sleeping"],
+.cat.playing    .cat__layer[data-pose="playing"],
+.cat.stretching .cat__layer[data-pose="stretching"] {
+  opacity: 1;
 }
 
 .cat__hitbox {
@@ -61,6 +80,7 @@ body {
   pointer-events: auto;
   touch-action: none;
   outline: none;
+  z-index: 1;
 }
 
 .cat__hitbox:active {
@@ -69,24 +89,4 @@ body {
 
 .cat.dragging {
   filter: drop-shadow(0 20px 20px rgba(24, 21, 18, 0.22));
-}
-
-.cat.idle {
-  background-image: url("assets/sprites/cat_03.png");
-}
-
-.cat.walking {
-  background-image: url("assets/sprites/cat_01.png");
-}
-
-.cat.sleeping {
-  background-image: url("assets/sprites/cat_02.png");
-}
-
-.cat.playing {
-  background-image: url("assets/sprites/cat_04.png");
-}
-
-.cat.stretching {
-  background-image: url("assets/sprites/cat_06.png");
 }
